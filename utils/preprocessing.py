@@ -28,10 +28,15 @@ def bandpass_filter(data, lowcut, highcut, fs, order=4):
     """
     סינון תדרים מסוג Butterworth Bandpass דו-כיווני (Zero-phase filtering).
     """
-    # ==========================================
-    # TODO (סטודנט א'):
-    # 1. חשב את תדר נייקוויסט (0.5 * fs) ונרמל את lowcut ו-highcut לפיו.
-    # 2. צור את מקדמי המסנן (b, a) באמצעות signal.butter עם מסנן מסוג 'bandpass'.
-    # 3. סנן את האות data בעזרת signal.filtfilt והחזר את האות המסונן.
-    # ==========================================
-    raise NotImplementedError("Student A: Please implement bandpass_filter()")
+    # 1. חישוב תדר נייקוויסט ונרמול תדרי החיתוך לפיו
+    nyquist = 0.5 * fs
+    low = lowcut / nyquist
+    high = highcut / nyquist
+    
+    # 2. יצירת מקדמי המסנן (b, a) באמצעות signal.butter עם מסנן מסוג 'bandpass'
+    b, a = signal.butter(order, [low, high], btype='bandpass')
+    
+    # 3. סינון האות data בעזרת signal.filtfilt והחזרת האות המסונן
+    filtered_data = signal.filtfilt(b, a, data)
+    
+    return filtered_data

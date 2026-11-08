@@ -1,30 +1,45 @@
 import numpy as np
 
-def extract_epochs(data, trigger_indices, pre_samples=50, post_samples=150):
+def extract_epochs(filtered_signal, events, fs, t_min, t_max):
     """
-    חיתוך חלונות זמן (Epochs) סביב אירועים/טריגרים.
-    מחזיר מערך דו-ממדי: (מספר חלונות, אורך חלון בדגימות).
+    חותך מקטעי זמן (Epochs) מתוך האות המסונן סביב כל נקודת גירוי (Event).
     """
-    # ==========================================
-    # TODO (סטודנט ב' - חלק 1):
-    # 1. צור רשימה ריקה לאיסוף החלונות.
-    # 2. רוץ בלולאה על כל אינדקס ב-trigger_indices.
-    # 3. בדוק שחלון הזמן (start: idx - pre_samples, end: idx + post_samples) לא חורג מגבולות המערך data.
-    # 4. חתוך את המקטע מתוך data, הוסף לרשימה והחזר כמערך דו-ממדי של numpy (np.array).
-    # ==========================================
-    raise NotImplementedError("Student B: Please implement extract_epochs()")
+    # חישוב כמות הדגימות לפני ואחרי הגירוי לפי זמן (בשניות) ותדר הדגימה (fs)
+    pre_samples = int(abs(t_min) * fs)
+    post_samples = int(t_max * fs)
+    
+    epochs = []
+    # חיתוך האות עבור כל אחד מהאירועים
+    for event in events:
+        start_idx = event - pre_samples
+        end_idx = event + post_samples
+        
+        # נוודא שהמקטע שאנחנו מנסים לחתוך לא חורג מגבולות האות
+        if start_idx >= 0 and end_idx < len(filtered_signal):
+            epochs.append(filtered_signal[start_idx:end_idx])
+            
+    # החזרת המקטעים כמערך של NumPy
+    return np.array(epochs)
 
-def compute_psd(epoch_signal, fs):
+def calculate_psd(epochs, fs):
     """
-    חישוב צפיפות הספקטרום בעזרת FFT (Real FFT).
-    מחזיר ציר תדרים ועוצמת הספק (Power Spectral Density).
+    מחשב את צפיפות ספקטרום העוצמה (PSD) באמצעות התמרת פורייה (FFT).
     """
-    # ==========================================
-    # TODO (סטודנט ב' - חלק 2):
-    # 1. מצא את אורך האות n.
-    # 2. חשב את רכיבי התדרים הממשיים בעזרת np.fft.rfft(epoch_signal).
-    # 3. חשב את ציר התדרים בעזרת np.fft.rfftfreq(n, d=1.0/fs).
-    # 4. חשב את צפיפות ספקטרום העוצמה (PSD): (np.abs(fft_vals) ** 2) / (n * fs).
-    # 5. החזר: frequencies, power_spectrum.
-    # ==========================================
-    raise NotImplementedError("Student B: Please implement compute_psd()")
+    # ממוצע של כל המקטעים (חישוב ERP)
+    mean_epoch = np.mean(epochs, axis=0)
+    
+    n_samples = len(mean_epoch)
+    
+    # הפעלת התמרת פורייה מהירה (FFT) על הממוצע
+    fft_result = np.fft.fft(mean_epoch)
+    
+    # יצירת ציר התדרים
+    frequencies = np.fft.fftfreq(n_samples, 1/fs)
+    
+    # חישוב PSD (צפיפות ספקטרום העוצמה - הערך המוחלט בריבוע)
+    psd = np.abs(fft_result) ** 2
+    
+    # לקיחת רק התדרים החיוביים (כי תדר שלילי לא רלוונטי בגרף)
+    pos_idx = frequencies >= 0
+    
+    return frequencies[pos_idx], psd[pos_idx], mean_epoch
